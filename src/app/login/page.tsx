@@ -39,16 +39,16 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-50">
       <div className="w-full max-w-md p-8 bg-white rounded shadow">
-        <h1 className="text-2xl font-semibold mb-4">Đăng nhập</h1>
+        <h1 className="text-2xl font-semibold mb-4 text-red-600">Đăng nhập</h1>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <input
-            className="border px-3 py-2 rounded"
+            className="border px-3 py-2 rounded text-gray-800 placeholder-gray-700"
             placeholder="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
           />
           <input
-            className="border px-3 py-2 rounded"
+            className="border px-3 py-2 rounded text-gray-800 placeholder-gray-700"
             placeholder="Password"
             type="password"
             value={password}
@@ -57,7 +57,7 @@ export default function LoginPage() {
           {error && <div className="text-red-600">{error}</div>}
           <button className="mt-2 rounded bg-foreground text-background px-4 py-2">Đăng nhập</button>
         </form>
-        <div className="mt-4 text-sm text-gray-500">Dùng tạm: <strong>admin</strong> / <strong>123</strong></div>
+        <div className="mt-4 text-sm text-gray-800">Dùng tạm: <strong>admin</strong> / <strong>123</strong></div>
       </div>
     </div>
   );

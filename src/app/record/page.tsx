@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import useRequireAuth from "@/hooks/useRequireAuth";
 import createSpeechRecognition from "@/services/speech";
+import { generateMeetingMinutes } from "@/services/aiService";
 
 export default function RecordPage() {
   useRequireAuth();
@@ -11,6 +12,8 @@ export default function RecordPage() {
   const [interim, setInterim] = useState("");
   const [finalSegments, setFinalSegments] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [minutes, setMinutes] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
   const controllerRef = useRef<ReturnType<typeof createSpeechRecognition> | null>(null);
 
   useEffect(() => {
@@ -74,11 +77,35 @@ export default function RecordPage() {
     setFinalSegments([]);
     setInterim("");
     setError(null);
+    setMinutes(null);
+  };
+
+  const handleGenerateMinutes = async () => {
+    setError(null);
+    setMinutes(null);
+    const transcript = finalSegments.join(" ");
+    if (!transcript.trim()) {
+      setError("Không có văn bản để chuyển thành biên bản.");
+      return;
+    }
+    setGenerating(true);
+    try {
+      const res = await generateMeetingMinutes(transcript);
+      if (!res.ok) {
+        setError(res.message || "Lỗi khi gọi AI");
+      } else {
+        setMinutes(res.minutes || null);
+      }
+    } catch (e: any) {
+      setError(String(e?.message || e));
+    } finally {
+      setGenerating(false);
+    }
   };
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-4">Ghi âm → Văn bản (Tiếng Việt)</h1>
+      <h1 className="text-2xl font-semibold mb-4 text-red-600">Ghi âm → Văn bản (Tiếng Việt)</h1>
 
       <div className="mb-4 flex items-center gap-3">
         {!recording ? (
@@ -97,20 +124,41 @@ export default function RecordPage() {
         <button onClick={clear} className="px-3 py-2 rounded border">
           Xóa
         </button>
-        <div className="text-sm text-gray-600">Trạng thái: {recording ? "Đang ghi" : "Đã dừng"}</div>
+        <div className="text-sm text-gray-800">Trạng thái: {recording ? "Đang ghi" : "Đã dừng"}</div>
+      </div>
+
+      <div className="mb-6">
+        <button
+          onClick={handleGenerateMinutes}
+          disabled={generating}
+          className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+        >
+          {generating ? "Đang tạo biên bản..." : "Chuyển thành biên bản họp"}
+        </button>
       </div>
 
       {error && <div className="mb-4 text-red-600">{error}</div>}
 
       <div>
-        <h2 className="text-lg font-medium mb-2">Văn bản</h2>
+        <h2 className="text-lg font-medium mb-2 text-red-600">Văn bản</h2>
         <textarea
           className="w-full min-h-[200px] border p-3 rounded mb-2 text-black"
           value={finalSegments.join(" ") + (interim ? ` ${interim}` : "")}
           readOnly
         />
-        <div className="text-sm text-gray-500">Gợi ý: dùng Chrome (phiên bản hỗ trợ Web Speech API). Ngôn ngữ đã đặt: Tiếng Việt (vi-VN).</div>
+        <div className="text-sm text-gray-800">Gợi ý: dùng Chrome (phiên bản hỗ trợ Web Speech API). Ngôn ngữ đã đặt: Tiếng Việt (vi-VN).</div>
       </div>
+
+      {minutes && (
+        <div className="mt-6">
+          <h2 className="text-lg font-medium mb-2 text-red-600">Biên bản tạo tự động</h2>
+          <textarea
+            className="w-full min-h-[200px] border p-3 rounded mb-2 text-black"
+            value={minutes}
+            readOnly
+          />
+        </div>
+      )}
     </div>
   );
 }

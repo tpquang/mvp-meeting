@@ -16,17 +16,17 @@ export default function Sidebar() {
   return (
     <aside className="w-64 h-screen border-r px-4 py-6 bg-white">
       <div className="mb-8">
-        <h2 className="text-lg font-semibold">MVP Meeting</h2>
+        <h2 className="text-lg font-semibold text-red-600">MVP Meeting</h2>
       </div>
       <nav className="flex flex-col gap-2">
         <Link
-          className={`px-3 py-2 rounded ${pathname.startsWith(`/record`) ? "bg-red-600 text-white" : "text-gray-500 hover:bg-gray-100"}`}
+          className={`px-3 py-2 rounded ${pathname.startsWith(`/record`) ? "bg-red-600 text-white" : "text-gray-800 hover:bg-gray-100"}`}
           href={recordPath()}
         >
           Ghi âm → Văn bản
         </Link>
         <Link
-          className={`px-3 py-2 rounded ${pathname.startsWith(`/settings`) ? "bg-red-600 text-white" : "text-gray-500 hover:bg-gray-100"}`}
+          className={`px-3 py-2 rounded ${pathname.startsWith(`/settings`) ? "bg-red-600 text-white" : "text-gray-800 hover:bg-gray-100"}`}
           href={settingsPath()}
         >
           Settings

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import useRequireAuth from "@/hooks/useRequireAuth";
-import { getAPIKeys, addAPIKey, removeAPIKey, getAPIKeyById, setAIConfig as persistAIConfig } from "@/services/aiService";
+import { getAIConfig, DEFAULT_PROMPT, getAPIKeys, addAPIKey, removeAPIKey, getAPIKeyById, setAIConfig as persistAIConfig, testAPIKey } from "@/services/aiService";
 import type { APIKeyEntry } from "@/types";
 
 function makeId() {
@@ -14,7 +14,9 @@ export default function SettingsPage() {
 
   const [domain, setDomain] = useState("gpt");
   const [apiKeyInput, setApiKeyInput] = useState("");
-  const [prompt, setPrompt] = useState("");
+  const [testStatus, setTestStatus] = useState<"idle" | "pending" | "success" | "error">("idle");
+  const [testMessage, setTestMessage] = useState<string | null>(null);
+  const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const [saved, setSaved] = useState(false);
   const [keys, setKeys] = useState<APIKeyEntry[]>([]);
   const [selectedKeyId, setSelectedKeyId] = useState<string | null>(null);
@@ -22,6 +24,22 @@ export default function SettingsPage() {
 
   useEffect(() => {
     setKeys(getAPIKeys());
+    // load saved AI config (if any)
+    try {
+      const cfg = getAIConfig();
+      if (cfg) {
+        setDomain(cfg.domain || "gpt");
+        setPrompt(cfg.prompt || DEFAULT_PROMPT);
+        setProcessingMode(cfg.processingMode || "conversation");
+        setSelectedKeyId(cfg.selectedKeyId || null);
+        if (cfg.selectedKeyId) {
+          const k = getAPIKeyById(cfg.selectedKeyId);
+          if (k) setApiKeyInput(k.key || "");
+        } else {
+          setApiKeyInput(cfg.apiKey || "");
+        }
+      }
+    } catch (e) {}
   }, []);
 
   useEffect(() => {
@@ -38,6 +56,23 @@ export default function SettingsPage() {
     setKeys((s) => [entry, ...s]);
     setSelectedKeyId(entry.id);
     setApiKeyInput("");
+  };
+
+  const handleTestConnection = async () => {
+    setTestStatus("pending");
+    setTestMessage(null);
+    // choose selected key if exists, otherwise use typed input
+    const selectedKey = getAPIKeyById(selectedKeyId);
+    const keyToTest = selectedKey ? selectedKey.key : apiKeyInput;
+    const res = await testAPIKey(keyToTest || "", domain);
+    if (res.ok) {
+      setTestStatus("success");
+      setTestMessage(res.message || "OK");
+    } else {
+      setTestStatus("error");
+      setTestMessage(res.message || "Failed");
+    }
+    setTimeout(() => setTestStatus("idle"), 3000);
   };
 
   const handleRemoveKey = (id: string) => {
@@ -60,12 +95,12 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-4">Settings — {domain}</h1>
+      <h1 className="text-2xl font-semibold mb-4 text-red-600">Settings — {domain}</h1>
 
       <form onSubmit={handleSave} className="flex flex-col gap-4 max-w-lg">
         <label className="flex flex-col">
-          <span className="text-sm text-gray-600">Domain</span>
-          <select value={domain} onChange={(e) => setDomain(e.target.value)} className="border px-3 py-2 rounded">
+          <span className="text-sm text-gray-800">Domain</span>
+          <select value={domain} onChange={(e) => setDomain(e.target.value)} className="border px-3 py-2 rounded text-gray-800">
             <option value="gpt">ChatGPT</option>
             <option value="gemini">Gemini</option>
             <option value="grok">Grok</option>
@@ -73,9 +108,9 @@ export default function SettingsPage() {
         </label>
 
         <label className="flex flex-col">
-          <span className="text-sm text-gray-600">Chọn API key đã lưu</span>
+          <span className="text-sm text-gray-800">Chọn API key đã lưu</span>
           <div className="flex gap-2">
-            <select value={selectedKeyId || ""} onChange={(e) => setSelectedKeyId(e.target.value || null)} className="border px-3 py-2 rounded flex-1">
+            <select value={selectedKeyId || ""} onChange={(e) => setSelectedKeyId(e.target.value || null)} className="border px-3 py-2 rounded flex-1 text-gray-800">
               <option value="">-- Chọn key --</option>
               {keys.map((k) => (
                 <option key={k.id} value={k.id}>{`${k.label} (${k.domain})`}</option>
@@ -86,16 +121,22 @@ export default function SettingsPage() {
         </label>
 
         <label className="flex flex-col">
-          <span className="text-sm text-gray-600">Hoặc thêm API Key mới</span>
-          <input value={apiKeyInput} onChange={(e) => setApiKeyInput(e.target.value)} placeholder="Nhập API key mới" className="border px-3 py-2 rounded" />
+          <span className="text-sm text-gray-800">Hoặc thêm API Key mới</span>
+          <input value={apiKeyInput} onChange={(e) => setApiKeyInput(e.target.value)} placeholder="Nhập API key mới" className="border px-3 py-2 rounded text-gray-800 placeholder-gray-700" />
           <div className="mt-2 flex gap-2">
             <button type="button" onClick={handleAddKey} className="px-3 py-2 rounded bg-foreground text-background">Thêm và chọn</button>
+            <button type="button" onClick={handleTestConnection} className="px-3 py-2 rounded border">
+              {testStatus === "pending" ? "Đang kiểm tra..." : "Test kết nối AI"}
+            </button>
           </div>
+          {testMessage && (
+            <div className={`mt-2 text-sm ${testStatus === "success" ? "text-emerald-700" : "text-red-600"}`}>{testMessage}</div>
+          )}
         </label>
 
         <label className="flex flex-col">
-          <span className="text-sm text-gray-600">AI xử lý (mode)</span>
-          <select value={processingMode} onChange={(e) => setProcessingMode(e.target.value as any)} className="border px-3 py-2 rounded">
+          <span className="text-sm text-gray-800">AI xử lý (mode)</span>
+          <select value={processingMode} onChange={(e) => setProcessingMode(e.target.value as any)} className="border px-3 py-2 rounded text-gray-800">
             <option value="conversation">Conversation</option>
             <option value="concise">Concise</option>
             <option value="detailed">Detailed</option>
@@ -104,12 +145,32 @@ export default function SettingsPage() {
         </label>
 
         <label className="flex flex-col">
-          <span className="text-sm text-gray-600">Prompt mặc định</span>
-          <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} className="border px-3 py-2 rounded min-h-[120px]" />
+          <span className="text-sm text-gray-800">Prompt mặc định</span>
+          <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} className="border px-3 py-2 rounded min-h-[120px] text-gray-800 placeholder-gray-700" />
         </label>
 
         <div className="flex items-center gap-3">
           <button className="rounded bg-foreground text-background px-4 py-2">Lưu</button>
+          <button
+            type="button"
+            onClick={() => {
+              // reset to defaults
+              const cfg = { domain: "gpt", apiKey: "", prompt: DEFAULT_PROMPT, processingMode: "conversation", selectedKeyId: null };
+              try {
+                persistAIConfig(cfg as any);
+              } catch (e) {}
+              setDomain(cfg.domain);
+              setApiKeyInput("");
+              setPrompt(cfg.prompt);
+              setProcessingMode(cfg.processingMode);
+              setSelectedKeyId(null);
+              setSaved(true);
+              setTimeout(() => setSaved(false), 1500);
+            }}
+            className="rounded border px-3 py-2"
+          >
+            Reset về mặc định
+          </button>
           {saved && <span className="text-green-600">Đã lưu</span>}
         </div>
 
@@ -120,7 +181,7 @@ export default function SettingsPage() {
               <li key={k.id} className="flex items-center justify-between border p-2 rounded">
                 <div>
                   <div className="text-sm font-medium">{k.label}</div>
-                  <div className="text-xs text-gray-500">{k.domain} • {new Date(k.createdAt).toLocaleString()}</div>
+                      <div className="text-xs text-gray-800">{k.domain} • {new Date(k.createdAt).toLocaleString()}</div>
                 </div>
                 <div className="flex items-center gap-2">
                   <button type="button" onClick={() => { setSelectedKeyId(k.id); setDomain(k.domain); setApiKeyInput(k.key); }} className="px-2 py-1 text-sm rounded border">Select</button>

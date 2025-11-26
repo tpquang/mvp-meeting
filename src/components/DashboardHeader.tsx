@@ -10,15 +10,15 @@ function Breadcrumbs() {
   const parts = pathname.split("/").filter(Boolean);
 
   return (
-    <nav className="text-sm text-gray-600" aria-label="Breadcrumb">
+    <nav className="text-sm text-gray-800" aria-label="Breadcrumb">
       <ol className="flex items-center gap-2">
         <li>
-          <Link href="/dashboard" className="text-gray-700 hover:underline">
+          <Link href="/dashboard" className="text-gray-800 hover:underline">
             Dashboard
           </Link>
         </li>
         {parts.map((p, i) => (
-          <li key={i} className="capitalize text-gray-500">
+          <li key={i} className="capitalize text-gray-800">
             <span className="mx-1">/</span>
             <span>{p}</span>
           </li>
@@ -39,7 +39,7 @@ export default function DashboardHeader() {
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="text-sm text-gray-700">Xin chào, <span className="font-medium">Admin</span></div>
+        <div className="text-sm text-gray-800">Xin chào, <span className="font-medium">Admin</span></div>
         <button
           onClick={() => {
             logout();
