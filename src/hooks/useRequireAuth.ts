@@ -6,17 +6,18 @@ import { useAuth } from "@/context/AuthContext";
 import { LOGIN } from "@/lib/routes";
 
 export default function useRequireAuth() {
-  const { isAuthenticated } = useAuth();
-  const router = useRouter();
+  // Bỏ qua kiểm tra authentication - cho phép truy cập trực tiếp
+  // const { isAuthenticated } = useAuth();
+  // const router = useRouter();
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      // replace so user can't go back to protected page
-      try {
-        router.replace(LOGIN);
-      } catch (e) {
-        // noop
-      }
-    }
-  }, [isAuthenticated, router]);
+  // useEffect(() => {
+  //   if (!isAuthenticated) {
+  //     // replace so user can't go back to protected page
+  //     try {
+  //       router.replace(LOGIN);
+  //     } catch (e) {
+  //       // noop
+  //     }
+  //   }
+  // }, [isAuthenticated, router]);
 }
